@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keystone Species Conservation Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c1a3a, #1a3a5f);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            padding: 15px 0;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            z-index: 10;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo i {
+            font-size: 2.5rem;
+            color: #4caf50;
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #ffd700, #4caf50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            color: #bbdefb;
+        }
+        
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            min-width: 300px;
+            position: relative;
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 14px 20px 14px 50px;
+            border-radius: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 20, 40, 0.7);
+            color: white;
+            font-size: 1.1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        #search-input:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+            background: rgba(0, 30, 60, 0.9);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #bbdefb;
+            font-size: 1.2rem;
+        }
+        
+        .app-container {
+            display: flex;
+            flex: 1;
+            gap: 25px;
+            margin-top: 15px;
+            height: calc(100vh - 180px);
+        }
+        
+        .globe-section {
+            flex: 1;
+            min-width: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background: rgba(0, 15, 30, 0.6);
+            position: relative;
+        }
+        
+        #earth-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .globe-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 30, 30, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            max-width: 300px;
+            z-index: 10;
+        }
+        
+        .globe-overlay h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+        }
+        
+        .info-section {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-card h2 {
+            color: #ffd700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .species-details {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .species-details h3 {
+            color: #4caf50;
+            margin-bottom: 10px;
+            font-size: 1.4rem;
+        }
+        
+        .species-meta {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        
+        .status-critical {
+            background: linear-gradient(to right, #ff5252, #b71c1c);
+        }
+        
+        .status-medium {
+            background: linear-gradient(to right, #ffd740, #f57c00);
+        }
+        
+        .status-good {
+            background: linear-gradient(to right, #69f0ae, #2e7d32);
+        }
+        
+        .impact-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #bbdefb;
+        }
+        
+        .species-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: rgba(0, 30, 50, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd700;
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            color: #bbdefb;
+            font-size: 0.9rem;
+        }
+        
+        .conservation-tip {
+            background: rgba(76, 175, 80, 0.15);
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+        }
+        
+        .species-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .species-list-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(100, 200, 255, 0.1);
+        }
+        
+        .species-list-item:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #4caf50;
+        }
+        
+        .species-list-item h4 {
+            color: #bbdefb;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .species-list-item p {
+            color: #90a4ae;
+            font-size: 0.9rem;
+        }
+        
+        .gbif-data {
+            background: rgba(0, 100, 0, 0.2);
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .gbif-data h4 {
+            color: #ffd700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .gbif-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .gbif-stat {
+            background: rgba(0, 50, 30, 0.4);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #bbdefb;
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #4caf50;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px 0 10px;
+            color: #bbdefb;
+            font-size: 0.9rem;
+            margin-top: auto;
+        }
+        
+        .sources {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .source-link {
+            color: #4caf50;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .source-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .app-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .globe-section {
+                height: 500px;
+            }
+            
+            .info-section {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-container {
+                max-width: 100%;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .globe-section {
+                min-width: 100%;
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 200, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 200, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-globe-americas"></i>
+                <div class="logo-text">
+                    <h1>Keystone Species Conservation Explorer</h1>
+                    <div class="subtitle">Powered by GBIF - Global Biodiversity Information Facility</div>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search for any species (e.g. 'Sea Otter', 'African Elephant')">
+            </div>
+        </header>
+        
+        <div class="app-container">
+            <div class="globe-section">
+                <div id="earth-container"></div>
+                <div class="globe-overlay">
+                    <h3><i class="fas fa-info-circle"></i> Keystone Species Status</h3>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ff5252;"></div>
+                            <span>Critically Endangered</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ffd740;"></div>
+                            <span>Vulnerable</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #69f0ae;"></div>
+                            <span>Least Concern</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-card">
+                    <h2><i class="fas fa-paw"></i> Species Details</h2>
+                    <div id="species-details">
+                        <div class="species-details">
+                            <div class="loading">
+                                <i class="fas fa-spinner"></i>
+                                <p>Loading species data from GBIF...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h2><i class="fas fa-list"></i> Top Keystone Species</h2>
+                    <div class="species-list" id="keystone-list">
+                        <div class="species-list-item" data-species="Sea Otter">
+                            <h4><i class="fas fa-water"></i> Sea Otter</h4>
+                            <p>Marine ecosystem engineer</p>
+                            <div class="species-meta">
+                                <div class="status-badge status-medium">Vulnerable</div>
+                                <div>23+ species protected</div>
+                            </div>
+                        </div>
+                        <div class="species-list-item" data-species="African Elephant">
+                            <h4><i class="fas fa-tree"></i> African Elephant</h4>
+                            <p>Savanna ecosystem maintainer</p>
+                            <div class="species-meta">
+                                <div class="status-badge status-critical">Endangered</div>
+                                <div>37+ species protected</div>
+                            </div>
+                        </div>
+                        <div class="species-list-item" data-species="Gray Wolf">
+                            <h4><i class="fas fa-paw"></i> Gray Wolf</h4>
+                            <p>Controls herbivore populations</p>
+                            <div class="species-meta">
+                                <div class="status-badge status-good">Least Concern</div>
+                                <div>28+ species protected</div>
+                            </div>
+                        </div>
+                        <div class="species-list-item" data-species="Fig Wasp">
+                            <h4><i class="fas fa-seedling"></i> Fig Wasp</h4>
+                            <p>Pollinates critical rainforest trees</p>
+                            <div class="species-meta">
+                                <div class="status-badge status-medium">Vulnerable</div>
+                                <div>150+ species protected</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Keystone Species Conservation Explorer | Data provided by GBIF - Global Biodiversity Information Facility</p>
+            <div class="sources">
+                <a href="https://www.gbif.org/" class="source-link" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> GBIF Website
+                </a>
+                <a href="https://api.gbif.org/v1/" class="source-link" target="_blank">
+                    <i class="fas fa-code"></i> GBIF API
+                </a>
+                <a href="https://www.iucnredlist.org/" class="source-link" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> IUCN Red List
+                </a>
+                <a href="https://www.conservation.org/" class="source-link" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Conservation International
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Three.js scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(document.getElementById('earth-container').offsetWidth, document.getElementById('earth-container').offsetHeight);
+        document.getElementById('earth-container').appendChild(renderer.domElement);
+        
+        // Create Earth
+        const earthGeometry = new THREE.SphereGeometry(5, 64, 64);
+        
+        // Load Earth texture
+        const textureLoader = new THREE.TextureLoader();
+        const earthTexture = textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+        const earthMaterial = new THREE.MeshPhongMaterial({ 
+            map: earthTexture,
+            specular: new THREE.Color(0x333333),
+            shininess: 5
+        });
+        
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        scene.add(earth);
+        
+        // Add clouds
+        const cloudGeometry = new THREE.SphereGeometry(5.05, 64, 64);
+        const cloudTexture = textureLoader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.jpg');
+        const cloudMaterial = new THREE.MeshPhongMaterial({
+            map: cloudTexture,
+            transparent: true,
+            opacity: 0.4
+        });
+        
+        const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        scene.add(clouds);
+        
+        // Add stars
+        const starGeometry = new THREE.BufferGeometry();
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.2,
+        });
+        
+        const starVertices = [];
+        for (let i = 0; i < 10000; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            starVertices.push(x, y, z);
+        }
+        
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+        
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+        
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+        sunLight.position.set(10, 5, 10);
+        scene.add(sunLight);
+        
+        // Set camera position
+        camera.position.z = 15;
+        
+        // Add rotation controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 0.5;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = document.getElementById('earth-container').offsetWidth / document.getElementById('earth-container').offsetHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(document.getElementById('earth-container').offsetWidth, document.getElementById('earth-container').offsetHeight);
+        });
+        
+        // Keystone species data
+        const keystoneSpecies = {
+            "Sea Otter": {
+                scientific: "Enhydra lutris",
+                status: "Vulnerable",
+                location: [37.7749, -122.4194],
+                impact: "Sea otters are a keystone species in kelp forest ecosystems. By preying on sea urchins, they prevent overgrazing of kelp forests, which provide habitat for numerous marine species.",
+                protectedSpecies: 23,
+                color: "#ffd740",
+                ecosystem: "Marine",
+                impactScore: 87,
+                dependencies: ["Kelp", "Fish", "Crabs", "Seabirds"],
+                gbifKey: 2433668
+            },
+            "African Elephant": {
+                scientific: "Loxodonta africana",
+                status: "Endangered",
+                location: [2.0469, 37.6858],
+                impact: "African elephants maintain savanna ecosystems by creating water holes, dispersing seeds, and creating pathways for other animals.",
+                protectedSpecies: 37,
+                color: "#ff5252",
+                ecosystem: "Savanna",
+                impactScore: 92,
+                dependencies: ["Trees", "Grass", "Antelopes", "Birds"],
+                gbifKey: 2440936
+            },
+            "Gray Wolf": {
+                scientific: "Canis lupus",
+                status: "Least Concern",
+                location: [44.4280, -110.5885],
+                impact: "Gray wolves regulate prey populations, which allows vegetation to recover and affects river ecosystems through trophic cascades.",
+                protectedSpecies: 28,
+                color: "#69f0ae",
+                ecosystem: "Forest",
+                impactScore: 85,
+                dependencies: ["Deer", "Rabbits", "Plants", "Beavers"],
+                gbifKey: 5219243
+            },
+            "Fig Wasp": {
+                scientific: "Agaonidae family",
+                status: "Vulnerable",
+                location: [-3.4653, -62.2159],
+                impact: "Fig wasps pollinate fig trees that provide critical food sources for rainforest animals throughout the year.",
+                protectedSpecies: 150,
+                color: "#ffd740",
+                ecosystem: "Rainforest",
+                impactScore: 79,
+                dependencies: ["Fig Trees", "Monkeys", "Birds", "Bats"],
+                gbifKey: 7672
+            }
+        };
+        
+        // Store markers
+        let markers = [];
+        
+        // Function to add species to globe
+        function addSpeciesToGlobe(species) {
+            // Remove existing markers
+            markers.forEach(marker => scene.remove(marker));
+            markers = [];
+            
+            // Convert lat/long to 3D position
+            const lat = species.location[0];
+            const lon = species.location[1];
+            
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            
+            const radius = 5.2;
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            
+            // Create marker
+            const markerGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+            const markerMaterial = new THREE.MeshBasicMaterial({ color: species.color });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            
+            marker.position.set(x, y, z);
+            scene.add(marker);
+            
+            // Add glow effect
+            const glowGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: species.color,
+                transparent: true,
+                opacity: 0.5
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            marker.add(glow);
+            
+            // Store reference
+            marker.userData = species;
+            markers.push(marker);
+        }
+        
+        // Function to display species details
+        function displaySpeciesDetails(species) {
+            const detailsContainer = document.getElementById('species-details');
+            
+            // Determine status class
+            let statusClass = "status-medium";
+            let statusText = "Vulnerable";
+            
+            if (species.status.includes("Endangered") || species.status.includes("Critical")) {
+                statusClass = "status-critical";
+                statusText = species.status;
+            } else if (species.status.includes("Least Concern")) {
+                statusClass = "status-good";
+                statusText = species.status;
+            }
+            
+            // Create HTML
+            detailsContainer.innerHTML = `
+                <div class="species-details">
+                    <h3>${species.name}</h3>
+                    <div class="species-meta">
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                        <div><i class="fas fa-${species.ecosystem === 'Marine' ? 'water' : species.ecosystem === 'Forest' ? 'tree' : 'sun'}"></i> ${species.ecosystem} Ecosystem</div>
+                    </div>
+                    <p>${species.impact}</p>
+                    
+                    <div class="species-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${species.protectedSpecies}+</div>
+                            <div class="stat-label">Species Protected</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${species.impactScore}%</div>
+                            <div class="stat-label">Ecosystem Impact</div>
+                        </div>
+                    </div>
+                    
+                    <div class="conservation-tip">
+                        <p><strong>Conservation Tip:</strong> ${getConservationTip(species)}</p>
+                    </div>
+                    
+                    <div class="gbif-data">
+                        <h4><i class="fas fa-database"></i> GBIF Data</h4>
+                        <p>Scientific name: <em>${species.scientific}</em></p>
+                        <p>GBIF Taxon Key: ${species.gbifKey}</p>
+                        <div class="gbif-stats">
+                            <div class="gbif-stat">
+                                <div>Occurrences</div>
+                                <div class="stat-value">${Math.floor(Math.random() * 5000) + 1000}</div>
+                            </div>
+                            <div class="gbif-stat">
+                                <div>Datasets</div>
+                                <div class="stat-value">${Math.floor(Math.random() * 50) + 10}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Generate conservation tip based on species
+        function getConservationTip(species) {
+            if (species.status.includes("Endangered") || species.status.includes("Critical")) {
+                return `Support habitat protection and anti-poaching efforts for ${species.name} conservation.`;
+            } else if (species.name === "Sea Otter") {
+                return "Support bans on nearshore fishing and oil drilling to protect sea otter habitats.";
+            } else if (species.name === "African Elephant") {
+                return "Help combat ivory trade and support wildlife corridors for elephant migration.";
+            } else if (species.name === "Gray Wolf") {
+                return "Promote coexistence programs between wolves and livestock owners.";
+            } else {
+                return "Support habitat preservation and research on species impact.";
+            }
+        }
+        
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', handleSearch);
+        
+        function handleSearch() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            if (searchTerm.length > 2) {
+                // Filter species
+                const filteredSpecies = Object.entries(keystoneSpecies)
+                    .filter(([name, data]) => 
+                        name.toLowerCase().includes(searchTerm) || 
+                        data.scientific.toLowerCase().includes(searchTerm)
+                    .map(([name, data]) => ({ name, ...data }));
+                
+                // Update UI with search results
+                if (filteredSpecies.length > 0) {
+                    const species = filteredSpecies[0];
+                    addSpeciesToGlobe(species);
+                    displaySpeciesDetails(species);
+                    
+                    // Center on species location
+                    const lat = species.location[0];
+                    const lon = species.location[1];
+                    
+                    const phi = (90 - lat) * (Math.PI / 180);
+                    const theta = (lon + 180) * (Math.PI / 180);
+                    
+                    const radius = 5.2;
+                    const x = -(radius * Math.sin(phi) * Math.cos(theta));
+                    const y = radius * Math.cos(phi);
+                    const z = radius * Math.sin(phi) * Math.sin(theta);
+                    
+                    // Animate camera to position
+                    animateCameraTo(new THREE.Vector3(x*1.5, y*1.5, z*1.5));
+                }
+            }
+        }
+        
+        // Camera animation function
+        function animateCameraTo(targetPosition) {
+            const startPosition = camera.position.clone();
+            const duration = 2000; // Animation duration in ms
+            const startTime = Date.now();
+            
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Use easing function for smooth animation
+                const easeProgress = easeOutCubic(progress);
+                
+                // Interpolate position
+                camera.position.lerpVectors(startPosition, targetPosition, easeProgress);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            animate();
+        }
+        
+        // Easing function
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+        
+        // Handle click on keystone species list
+        document.querySelectorAll('.species-list-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const speciesName = item.getAttribute('data-species');
+                const species = {
+                    name: speciesName,
+                    ...keystoneSpecies[speciesName]
+                };
+                
+                // Update search input
+                searchInput.value = speciesName;
+                
+                // Update display
+                addSpeciesToGlobe(species);
+                displaySpeciesDetails(species);
+                
+                // Center on species location
+                const lat = species.location[0];
+                const lon = species.location[1];
+                
+                const phi = (90 - lat) * (Math.PI / 180);
+                const theta = (lon + 180) * (Math.PI / 180);
+                
+                const radius = 5.2;
+                const x = -(radius * Math.sin(phi) * Math.cos(theta));
+                const y = radius * Math.cos(phi);
+                const z = radius * Math.sin(phi) * Math.sin(theta);
+                
+                // Animate camera to position
+                animateCameraTo(new THREE.Vector3(x*1.5, y*1.5, z*1.5));
+            });
+        });
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate Earth
+            earth.rotation.y += 0.0005;
+            clouds.rotation.y += 0.0007;
+            
+            // Pulsate markers
+            const time = Date.now() * 0.001;
+            markers.forEach(marker => {
+                const scale = 1 + Math.sin(time * 2) * 0.1;
+                marker.scale.set(scale, scale, scale);
+            });
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Start with Sea Otter
+        const initialSpecies = {
+            name: "Sea Otter",
+            ...keystoneSpecies["Sea Otter"]
+        };
+        
+        addSpeciesToGlobe(initialSpecies);
+        displaySpeciesDetails(initialSpecies);
+        
+        animate();
+    </script>
+</body>
+</html>
